@@ -39,7 +39,8 @@ Build-Depends-Indep: libapt-pkg-perl <!nocheck>,
                      libtie-ixhash-perl <!nocheck>,
                      libwww-mechanize-perl <!nocheck>,
                      libyaml-libyaml-perl <!nocheck>,
-                     libyaml-perl <!nocheck>
+                     libyaml-perl <!nocheck>,
+                     apt <!nocheck>
 # for RELEASE_TESTING
 #                     , libtest-distmanifest-perl <!nocheck>
 #                     , libtest-perl-critic-perl <!nocheck>
