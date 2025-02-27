@@ -25,7 +25,7 @@ require v5.10.0;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 use base qw( Class::Accessor Tie::IxHash );
 
@@ -58,16 +58,8 @@ See L<https://www.debian.org/doc/debian-policy/#user-defined-fields>.
 
 use constant fields => ();
 
-my %canonical;
-
 sub import {
     my( $class ) = @_;
-
-    # map the accessor name for the lower case equivalent
-    %canonical = map (
-        ( lc($_) => $_ ),
-        $class->fields,
-    );
 
     $class->mk_accessors( $class->fields );
 }
@@ -98,6 +90,12 @@ underscores:
 sub new {
     my $class = shift;
     my $init = shift || {};
+
+    # map the accessor name for the lower case equivalent
+    my %canonical = map (
+        ( lc($_) => $_ ),
+        $class->fields,
+    );
 
     my $self = Tie::IxHash->new;
 

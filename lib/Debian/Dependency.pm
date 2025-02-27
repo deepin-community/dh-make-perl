@@ -3,7 +3,7 @@ package Debian::Dependency;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 use AptPkg::Config;
 use Carp;
@@ -352,7 +352,7 @@ sub parse {
             }
         );
     }
-    else {
+    elsif ($str =~ /\S/) {
         die "Unable to parse '$str'";
     }
 }

@@ -205,6 +205,12 @@ binary") and does not sign the package. It is meant for a quick local
 install of a package, not for creating a package ready for submission to the
 Debian archive.
 
+=item B<--build-script> I<path>
+
+Use specified script for building the binary package. The script is run in the
+working directory, where F<debian/> directory is, with no arguments. The result
+of the build process is expected to appear in the parent directory.
+
 =item B<--build-source>
 
 Builds the source package (i.e. the .dsc and .debian.tar.gz files)
@@ -259,6 +265,9 @@ dependency information, you must do it using the debian package format. i.e.
 
     dh-make-perl --depends libtest-more-perl
 
+If you need to override the detection and specify the full dependency list by
+hand, use B<--force-depends>.
+
 =item B<--desc> I<SHORT DESCRIPTION>
 
 Uses the argument to --desc as short description for the package.
@@ -293,6 +302,18 @@ docs and stuff like that. If no argument is given (but the switch is specified
 - not specifying the switch will include everything), it defaults to
 dpkg-source's default values.
 
+=item B<--force-depends> I<STRING>
+
+Completely override detected run-time dependencies, replacing them with the
+given I<STRING>.
+
+=item B<--guess-nocheck> | B<--no-guess-nocheck>
+
+This adds <!nocheck> to the build-time dependencies where appropriate. Uses a
+hardcoded list with exceptions so it is not turned on by default.
+
+Default: --no-guess-nocheck
+
 =item B<--install>
 
 Installs the freshly built package. Specifying --install implies --build - The
@@ -307,6 +328,12 @@ available as Debian packages.
 
 Install dependencies required for building the module, as long as those dependencies
 are available as Debian packages.
+
+=item B<--install-with> I<apt|apt-get|aptitude|dpkg>
+
+Change the tool that is used to install the package when B<--install> is given.
+
+Default is B<apt>.
 
 =item B<--intrusive>
 
@@ -401,13 +428,13 @@ branches:
 
 =over
 
-=item upstream
+=item upstream/latest
 
 The initial branch containing upstream sources
 
-=item master
+=item debian/latest
 
-The branch where packaging is done, forked off C<upstream> and with the
+The branch where packaging is done, forked off C<upstream/latest> and with the
 contents of the C<debian/> directory added.
 
 =item pristine-tar
@@ -427,12 +454,12 @@ Print additional information while processing.
 
 =item B<--version> I<VERSION>
 
-Specifies the version of the resulting package.
+Specifies the upstream version of the resulting package.
 Usually calculated correctly but B<--version> can override wrong guesses.
 
-I<Note> that this is not the upstream version. For a non-native package you
-need to include the Debian revision here, e.g. for a new package of
-upstream's x.y release this would be B<x.y-1>.
+I<Note> that this is just the upstream version and is also used for the tag in
+the C<upstream> branch. If you need to also specify the Debian revision, use
+B<--revision>.
 
 =back
 

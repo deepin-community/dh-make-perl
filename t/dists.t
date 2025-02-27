@@ -244,7 +244,7 @@ sub modify_changelog {
     unshift @changelog, "\n";
     unshift @changelog, "  * Email change: Joe Maintainer -> joe\@debian.org\n";
     unshift @changelog, "\n";
-    unshift @changelog, "libstrange-perl (3.1-1) UNRELEASED; urgency=low\n";
+    unshift @changelog, "libstrange-perl (3.1-1) UNRELEASED; urgency=medium\n";
     close $chfh;
     open $chfh, '>',  $changelog_name or die "cannot open $changelog_name";
     print {$chfh} @changelog;

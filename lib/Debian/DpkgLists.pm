@@ -3,7 +3,7 @@ package Debian::DpkgLists;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 use Cwd;
 

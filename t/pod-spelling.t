@@ -29,7 +29,6 @@ Carnë
 Chantreux
 DEBEMAIL
 DEBFULLNAME
-DPKG
 Damyan
 DhMakePerl
 Dima
@@ -66,6 +65,7 @@ Moerch
 Molaro
 Morano
 Morrott
+Muntada
 NB
 Niebur
 Nijkes
@@ -87,6 +87,7 @@ Susano
 TODO
 Testsuite
 Uploaders
+UpstreamMetadata
 VCS
 WNPP
 amd

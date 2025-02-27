@@ -1,3 +1,118 @@
+0.125 (2024-05-11)
+
+  * Update Standards-Version to 4.7.0 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * t/core-modules.t: add test to check if libperl5.38t64 is a core perl
+    package.
+  * DhMakePerl::Utils: accept libperl*t64 as perl core package.
+
+0.124 (2024-03-14)
+
+  * t/DpkgLists.t:
+    - add another test for module outside of src:perl
+    - use Test::Deep's subsetof test to check for libperl5.xt64
+      (Closes: #1066786)
+
+0.123 (2024-03-04)
+
+  * lib/DhMakePerl/Command/make.pm: setup_dir(): fix directory handling.
+    We already change back to the original PWD after CPAN.pm changes to
+    $CPAN::Config->{build_dir}; now also set $ENV{'PWD'} explicitly back
+    because otherwise when using --recursive, the value of the old PWD is
+    wrong and all packages except the first one end up in the CPAN build
+    directory.
+  * Print a notice when packaging a module in the App:: namespace that
+    libapp-foo-perl might not be the best name for the package.
+  * DhMakePerl::Command::Packaging: extract_name_ver(): use version.pm to
+    compare versions instead of a trivial numerical comparison which can
+    warn and fail with "vX.Y.Z" versions.
+  * Use $self->pkgversion instead of $self->version for filename
+    when --install is used. (Closes: #1057776)
+  * Remove unneeded build dependency on libdpkg-parse-perl.
+  * Remove unneeded Pod::Spelling override "DPKG".
+  * Drop unneeded version constraints and Breaks
+    from (build) dependencies.
+  * Bump copyright years.
+
+0.122 (2023-02-21)
+
+  * Add explicit --initial-branch option to `git init' to avoid warning
+    about default branch name.
+  * Update Standards-Version to 4.6.2 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * Use 'upstream/latest' as branch name in Git repos (DEP14).
+  * Update copyright years.
+
+0.121 (2022-07-23)
+
+  * add support for using a custom build script for building the package
+    for example, for using sbuild, pbuilder, cowbuilder qemu, docker ...
+    (Closes: #954975)
+  * add support for installing with other tools than apt (Closes: #964909)
+  * create git repository using 'debian/latest' branch instead of 'master'
+  * use debian/latest as debian-branch in gbp.conf
+  * make: create debian/gbp.conf with the new debian branch
+  * adapt uses-dpkg-database-directly lintian override for new lintian
+
+0.120 (2022-06-10)
+
+  * replace usage of DPKG::Parse::Available with Dpkg::Index.
+    (Closes: #808911)
+  * move the slow check for locally installed packages after the APT contents
+    check
+  * add automatic annotation of B-D with <!nocheck>. guarded with
+    --guess-nocheck
+
+0.119 (2022-05-25)
+
+  * Debian::Upstream::Metadata::Perl: fix path creation in convert().
+
+0.118 (2022-05-22)
+
+  * split upstream metadata handling in Debian::Upstream::Metadata::Perl
+    Closes: #904479 -- share code with dpt-debian-upstream
+
+0.117 (2022-05-24)
+
+  [ Boris Shtrasman ]
+  * When orig_pwd is not set by CPAN fall back to one defined by dist
+    (Closes: #815390) [MR!3]
+
+  [ gregor herrmann ]
+  * Update Standards-Version to 4.6.0 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * DhMakePerl::Command::Packaging: get_name():
+    remove newline from gecos field.
+    This can happen when getting values from LDAP.
+    Thanks to Katharina Drexel for [MR!4].
+
+  [ Yadd ]
+  * Debian::Dependency: don't fail on empty dependency (Closes: #1004673)
+
+  [ Debian Janitor ]
+  * Remove constraints unnecessary since buster:
+    + dh-make-perl: Drop versioned constraint on apt and apt-file in Recommends.
+    + libdebian-source-perl: Drop versioned constraint on dpkg in Depends.
+    + libdebian-source-perl: Drop versioned constraint on dh-make-perl in
+      Replaces.
+    + libdebian-source-perl: Drop versioned constraint on dh-make-perl in
+      Breaks.
+
+  [ gregor herrmann ]
+  * Update Standards-Version to 4.6.1 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * Update copyright years.
+  * Make dependency on libpod-parser-perl versioned. (Closes: #990474)
+  * Drop unversioned apt from Recommends.
+
+  [ Damyan Ivanov ]
+  * apply slightly modified patch from Alex Muntada fixing support of
+    case-insensitive control fields (Closes: #1010241)
+  * add tests for case-insensitive control fields
+  * add tests for parsing extra commas in dependency strings (see #1004673)
+  * fix sub-optimal behaviour of --version option (Closes: #968871)
+  * add --force-depends option (Closes: #813766)
+
 0.116 (2021-02-26)
 
   [ Guillem Jover ]

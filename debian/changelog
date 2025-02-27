@@ -1,3 +1,174 @@
+dh-make-perl (0.127) unstable; urgency=medium
+
+  * Update Standards-Version to 4.7.1 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * Update years of copyright.
+
+ -- gregor herrmann <gregoa@debian.org>  Fri, 21 Feb 2025 18:25:54 +0100
+
+dh-make-perl (0.126) unstable; urgency=medium
+
+  [ gregor herrmann ]
+  * DhMakePerl::Command::refresh: run more steps as during
+    initial packaging.
+  * Don't issue warning about App::* distributions on refresh.
+
+  [ Joenio Marques da Costa ]
+  * change d/changelog template to urgency=medium
+    this commit changes the urgency=low to urgency=medium on the creation of
+    the debian/changelog template for new packages created by dh-make-perl to
+    reflect the recomendation of the developers-reference
+    https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html#selecting-the-upload-urgency
+    (Closes: #1077031)
+  * fix tests for the d/changelog value urgency=medium.
+
+  [ gregor herrmann ]
+  * Debian::Control: update POD. (Closes: #1084464)
+  * Debian::Control::FromCPAN: remove unused import which causes a warning
+    with Perl 5.40.
+
+ -- gregor herrmann <gregoa@debian.org>  Sat, 09 Nov 2024 01:29:22 +0100
+
+dh-make-perl (0.125) unstable; urgency=medium
+
+  * Update Standards-Version to 4.7.0 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * t/core-modules.t: add test to check if libperl5.38t64 is a core perl
+    package.
+  * DhMakePerl::Utils: accept libperl*t64 as perl core package.
+
+ -- gregor herrmann <gregoa@debian.org>  Sat, 11 May 2024 02:05:07 +0200
+
+dh-make-perl (0.124) unstable; urgency=medium
+
+  * t/DpkgLists.t:
+    - add another test for module outside of src:perl
+    - use Test::Deep's subsetof test to check for libperl5.xt64
+      (Closes: #1066786)
+
+ -- gregor herrmann <gregoa@debian.org>  Thu, 14 Mar 2024 17:00:49 +0100
+
+dh-make-perl (0.123) unstable; urgency=medium
+
+  [ gregor herrmann ]
+  * lib/DhMakePerl/Command/make.pm: setup_dir(): fix directory handling.
+    We already change back to the original PWD after CPAN.pm changes to
+    $CPAN::Config->{build_dir}; now also set $ENV{'PWD'} explicitly back
+    because otherwise when using --recursive, the value of the old PWD is
+    wrong and all packages except the first one end up in the CPAN build
+    directory.
+  * Remove unneeded build dependency on libdpkg-parse-perl.
+  * Remove unneeded Pod::Spelling override "DPKG".
+  * Print a notice when packaging a module in the App:: namespace that
+    libapp-foo-perl might not be the best name for the package.
+  * DhMakePerl::Command::Packaging: extract_name_ver(): use version.pm to
+    compare versions instead of a trivial numerical comparison which can
+    warn and fail with "vX.Y.Z" versions.
+
+  [ Dan Lewis ]
+  * Use $self->pkgversion instead of $self->version for filename
+    when --install is used. (Closes: #1057776)
+
+  [ gregor herrmann ]
+  * Bump copyright years.
+  * Drop unneeded version constraints and Breaks
+    from (build) dependencies.
+
+ -- gregor herrmann <gregoa@debian.org>  Mon, 04 Mar 2024 11:23:46 +0100
+
+dh-make-perl (0.122) unstable; urgency=medium
+
+  * Add explicit --initial-branch option to `git init' to avoid warning
+    about default branch name.
+  * Update Standards-Version to 4.6.2 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * Use 'upstream/latest' as branch name in Git repos (DEP14).
+  * Update copyright years.
+
+ -- gregor herrmann <gregoa@debian.org>  Tue, 21 Feb 2023 21:14:06 +0100
+
+dh-make-perl (0.121) unstable; urgency=medium
+
+  * add support for using a custom build script for building the package
+    for example, for using sbuild, pbuilder, cowbuilder qemu, docker ...
+    (Closes: #954975)
+  * add support for installing with other tools than apt (Closes: #964909)
+  * create git repository using 'debian/latest' branch instead of 'master'
+  * use debian/latest as debian-branch in gbp.conf
+  * make: create debian/gbp.conf with the new debian branch
+  * adapt uses-dpkg-database-directly lintian override for new lintian
+
+ -- Damyan Ivanov <dmn@debian.org>  Sat, 23 Jul 2022 20:01:01 +0000
+
+dh-make-perl (0.120) unstable; urgency=medium
+
+  [ Damyan Ivanov ]
+  * replace usage of DPKG::Parse::Available with Dpkg::Index.
+    (Closes: #808911)
+  * move the slow check for locally installed packages after the APT contents
+    check
+  * add automatic annotation of B-D with <!nocheck>. guarded with
+    --guess-nocheck
+
+ -- Damyan Ivanov <dmn@debian.org>  Fri, 10 Jun 2022 15:56:16 +0000
+
+dh-make-perl (0.119) unstable; urgency=medium
+
+  * Debian::Upstream::Metadata::Perl: fix path creation in convert().
+
+ -- gregor herrmann <gregoa@debian.org>  Wed, 25 May 2022 22:58:13 +0200
+
+dh-make-perl (0.118) unstable; urgency=medium
+
+  [ Damyan Ivanov ]
+  * split upstream metadata handling in Debian::Upstream::Metadata::Perl
+    Closes: #904479 -- share code with dpt-debian-upstream
+
+ -- Damyan Ivanov <dmn@debian.org>  Wed, 25 May 2022 15:56:32 +0000
+
+dh-make-perl (0.117) unstable; urgency=medium
+
+  [ Boris Shtrasman ]
+  * When orig_pwd is not set by CPAN fall back to one defined by dist
+    (Closes: #815390) [MR!3]
+
+  [ gregor herrmann ]
+  * Update Standards-Version to 4.6.0 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * DhMakePerl::Command::Packaging: get_name():
+    remove newline from gecos field.
+    This can happen when getting values from LDAP.
+    Thanks to Katharina Drexel for [MR!4].
+
+  [ Yadd ]
+  * Debian::Dependency: don't fail on empty dependency (Closes: #1004673)
+
+  [ Debian Janitor ]
+  * Remove constraints unnecessary since buster:
+    + dh-make-perl: Drop versioned constraint on apt and apt-file in Recommends.
+    + libdebian-source-perl: Drop versioned constraint on dpkg in Depends.
+    + libdebian-source-perl: Drop versioned constraint on dh-make-perl in
+      Replaces.
+    + libdebian-source-perl: Drop versioned constraint on dh-make-perl in
+      Breaks.
+
+  [ gregor herrmann ]
+  * Update Standards-Version to 4.6.1 for dh-make-perl itself, for created
+    packages, and in the test suite.
+  * Update copyright years.
+  * Make dependency on libpod-parser-perl versioned. (Closes: #990474)
+  * Drop unversioned apt from Recommends.
+
+  [ Damyan Ivanov ]
+  * apply slightly modified patch from Alex Muntada fixing support of
+    case-insensitive control fields (Closes: #1010241)
+  * add tests for case-insensitive control fields
+  * add tests for parsing extra commas in dependency strings (see #1004673)
+  * fix sub-optimal behaviour of --version option (Closes: #968871)
+  * add --force-depends option (Closes: #813766)
+
+ -- Damyan Ivanov <dmn@debian.org>  Tue, 24 May 2022 19:36:26 +0000
+
 dh-make-perl (0.116) unstable; urgency=medium
 
   [ Guillem Jover ]

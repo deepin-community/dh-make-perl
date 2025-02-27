@@ -3,7 +3,7 @@ package DhMakePerl::Config;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 =head1 NAME
 
@@ -19,7 +19,8 @@ my @OPTIONS = (
     'basepkgs=s',
     'bdepends=s',      'bdependsi=s',
     'build-source!',
-    'build!',          'closes=i',
+    'build!',          'build-script=s',
+    'closes=i',
     'cache-dir=s',
     'config-dir=s',    'config-file=s',
     'core-ok',
@@ -28,9 +29,11 @@ my @OPTIONS = (
     'dbflags=s',       'depends=s',
     'desc=s',          'dh=i',
     'dist=s',          'email|e=s',
-    'exclude|i:s{,}',
+    'exclude|i:s{,}',  'force-depends=s',
+    'guess-nocheck!',
     'home-dir=s',      'install!',
     'install-deps',     'install-build-deps',
+    'install-with=s',
     'intrusive!',
     'network!',
     'nometa',          'notest',
@@ -80,6 +83,7 @@ use constant DEFAULTS => {
     email         => '',
     exclude       => Dpkg::Source::Package->get_default_diff_ignore_regex(),
     home_dir      => "$ENV{HOME}/.dh-make-perl",
+    install_with  => 'apt',
     config_dir    => XDG_HOME->{CONFIG} . "/dh-make-perl",
     cache_dir     => XDG_HOME->{CACHE} . "/dh-make-perl",
     network       => 1,
@@ -162,6 +166,14 @@ sub parse_command_line_options {
     $opts{exclude} = $self->DEFAULTS->{'exclude'} if ! $opts{exclude}; # arguments not specified
                                                                        # back to defaults
 
+    if ($opts{version} and $opts{version} =~ /-/) {
+        warn "W: Specified value for --version contains a dash ('-').\n";
+        warn "W: This was required before if one wants to control the revision\n";
+        warn "W: of the resulting package. This is no longer the case and the\n";
+        warn "W: value is used only for the upstream part of the version.\n";
+        warn "W: Use --revision if you need to control the revision.\n";
+    }
+
     # handle comma-separated multiple values in --only
     $opts{only}
         = { map ( ( $_ => 1 ), split( /,/, join( ',', @{ $opts{only} } ) ) ) }
@@ -179,12 +191,18 @@ sub parse_command_line_options {
         $opts{'cache-dir'} //= $home_dir;
     }
 
+    die "--depends and --force-depends can't be used at the same time\n"
+        if $opts{depends} and $opts{'force-depends'};
+
     while ( my ( $k, $v ) = each %opts ) {
         my $field = $k;
         $field =~ s/-/_/g;
         $self->$field( $opts{$k} );
         $self->_explicitly_set->{$k} = 1;
     }
+
+    die "Unknown value for --install-with\n"
+        unless $self->install_with =~ /^(apt(-get|itude)?|dpkg)$/;
 
     # see what are we told to do
     %opts = ();
