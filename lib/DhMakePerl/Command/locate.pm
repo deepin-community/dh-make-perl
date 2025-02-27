@@ -12,7 +12,7 @@ This module implements the I<locate> command of L<dh-make-perl(1)>.
 
 use strict; use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 use base 'DhMakePerl';
 

@@ -5,6 +5,7 @@ use warnings;
 
 use Test::More 'no_plan';
 use Test::Deep;
+use Test::Exception;
 
 use_ok('Debian::Dependencies');
 
@@ -129,3 +130,8 @@ $list->remove('foo, bar (>= 2.0)');
 is( "$list", 'bar' );
 
 is( "".Debian::Dependency->new("\nlibapt-pkg-perl"), "libapt-pkg-perl" );
+
+for (',perl', ', perl', ' , perl') {
+    lives_ok { $list = Debian::Dependencies->new($_)} "'$_' is parsed as a dependency string";
+    is("$list", 'perl');
+}

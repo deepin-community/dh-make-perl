@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Copyright: 2022, gregor herrmann <gregoa@debian.org>
+# License: same as dh-make-perl
+
+set -eu
+
+OLDVERSION=$(dpkg-parsechangelog --show-field Version)
+MAJOR=$(echo "$OLDVERSION" | cut -d. -f1)
+MINOR=$(echo "$OLDVERSION" | cut -d. -f2)
+NEWVERSION="${MAJOR}.$(( $MINOR + 1 ))"
+
+git grep 'our $VERSION' | cut -f1 -d: | uniq | xargs perl -pi -e "s{(our.+VERSION) = '$OLDVERSION';}{\$1 = '$NEWVERSION';}g"
+
+dch --newversion $NEWVERSION '<dummy>'
+
+git commit -a -m "bump VERSION after release" -m "Gbp-Dch: Ignore"

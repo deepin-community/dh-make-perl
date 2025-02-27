@@ -29,12 +29,16 @@ Some parts are still of interest.
     debcommit -a -r
 
 * increase version number
+    1) manual
     git grep $ver
     sed -i -e 's/$ver/$ver+1/' file...
     git ci -a -m'increment version to $ver+1'
 
-    example for a one-liner:
-    git grep 'our $VERSION' | cut -f1 -d: | uniq | xargs perl -pi -e "s{(our.+VERSION) = '0.\d\d\d?';}{\$1 = '0.117';}g"
+    2) example for a one-liner:
+    git grep 'our $VERSION' | cut -f1 -d: | uniq | xargs perl -pi -e "s{(our.+VERSION) = '0.\d\d\d?';}{\$1 = '0.120';}g"
+
+    3) there's a tool:
+    tools/bump-version-after-release
 
 * push
     dpt push

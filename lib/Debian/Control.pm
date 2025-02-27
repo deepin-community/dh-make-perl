@@ -52,7 +52,7 @@ use base 'Class::Accessor';
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 __PACKAGE__->mk_accessors(qw( source binary binary_tie _parser ));
 
@@ -99,8 +99,7 @@ sub new {
 
 Parse L<debian/control> and populate C<source> and C<binary> accessors.
 
-I<file> can be either a file name, an opened file handle or a string scalar
-reference.
+I<file> can be either a file name or a string scalar reference.
 
 =cut
 

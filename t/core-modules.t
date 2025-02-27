@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 13;
+use Test::More tests => 14;
 
 use DhMakePerl::Utils qw(find_core_perl_dependency is_core_perl_package );
 
@@ -46,4 +46,5 @@ ok( is_core_perl_package('perl-base'), 'perl-base is core' );
 ok( is_core_perl_package('perl-modules'), 'perl-modules is core' );
 ok( is_core_perl_package('perl-modules-5.24'), 'perl-modules-5.24 is core' );
 ok( is_core_perl_package('libperl5.24'), 'libperl5.24 is core' );
+ok( is_core_perl_package('libperl5.38t64'), 'libperl5.38t64 is core' );
 ok( !is_core_perl_package('foo'), 'foo is not core' );

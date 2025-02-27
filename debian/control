@@ -15,7 +15,6 @@ Build-Depends-Indep: libapt-pkg-perl <!nocheck>,
                      libarray-unique-perl <!nocheck>,
                      libclass-accessor-perl <!nocheck>,
                      libconfig-ini-perl <!nocheck>,
-                     libdpkg-parse-perl <!nocheck>,
                      libdpkg-perl <!nocheck>,
                      libemail-address-xs-perl <!nocheck>,
                      libemail-date-format-perl <!nocheck>,
@@ -48,7 +47,7 @@ Build-Depends-Indep: libapt-pkg-perl <!nocheck>,
 #                     , libtest-spelling-perl <!nocheck>
 #                     , libtest-version-perl <!nocheck>
 #                     , spell <!nocheck> | aspell <!nocheck> | ispell <!nocheck> | hunspell <!nocheck>
-Standards-Version: 4.5.1
+Standards-Version: 4.7.1
 Vcs-Browser: https://salsa.debian.org/perl-team/modules/packages/dh-make-perl
 Vcs-Git: https://salsa.debian.org/perl-team/modules/packages/dh-make-perl.git
 Rules-Requires-Root: no
@@ -80,14 +79,11 @@ Depends: ${misc:Depends},
          libyaml-libyaml-perl,
          libyaml-perl,
          make
-Recommends: apt (>= 1.1.8),
-            apt-file (>= 3),
+Recommends: apt-file,
             git,
-            libdpkg-parse-perl,
             libmodule-build-perl,
             libsys-cpu-perl,
             pristine-tar
-Breaks: dh-make-elpa (<< 0.17~)
 Description: helper for creating Debian packages from perl modules
  dh-make-perl will create the files required to build a Debian source
  package out of a perl package.  This works for most simple packages
@@ -105,7 +101,6 @@ Package: libdebian-source-perl
 Architecture: all
 Depends: ${misc:Depends},
          ${perl:Depends},
-         dpkg (>= 1.19.3),
          dpkg-dev,
          libapt-pkg-perl,
          libarray-unique-perl,
@@ -116,8 +111,6 @@ Depends: ${misc:Depends},
          libtie-ixhash-perl,
          libwww-mechanize-perl,
          libwww-perl
-Breaks: dh-make-perl (<< 0.91)
-Replaces: dh-make-perl (<< 0.91)
 Description: collection of Perl modules for handling Debian source packages
  This collection of Perl modules was originally developed to support
  dh-make-perl, but may also be useful for other tools that need to

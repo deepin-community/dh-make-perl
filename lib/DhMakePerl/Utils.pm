@@ -3,7 +3,7 @@ package DhMakePerl::Utils;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.127';
 
 =head1 NAME
 
@@ -135,7 +135,7 @@ sub is_core_perl_package {
       or $pkg eq 'perl'
       or $pkg eq 'perl-xs-dev'
       or $pkg =~ /^perl-modules(?:-[\d.]+)?$/
-      or $pkg =~ /^libperl[\d.]+$/;
+      or $pkg =~ /^libperl[\d.]+(?:t64)?$/;
     return 0;
 }
 
