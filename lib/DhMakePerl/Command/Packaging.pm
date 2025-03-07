@@ -3,7 +3,7 @@ package DhMakePerl::Command::Packaging;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 use feature 'switch';
 
@@ -31,6 +31,9 @@ use Config::INI::Reader ();
 use CPAN ();
 use CPAN::Meta;
 use Cwd qw( getcwd );
+use Dpkg;
+use Dpkg::Index;
+use Dpkg::Control::Types;
 use Debian::Control::FromCPAN;
 use Debian::Dependencies;
 use Debian::Rules;
@@ -45,8 +48,9 @@ use File::Spec::Functions qw(catfile catpath splitpath);
 use Text::Balanced qw(extract_quotelike);
 use Text::Wrap qw(fill);
 use User::pwent;
+use version;
 
-use constant debstdversion => '4.5.1';
+use constant debstdversion => '4.7.2';
 
 our %DEFAULTS = (
 );
@@ -151,6 +155,7 @@ sub get_name {
     }
     else {
         $name = $pwnam->gecos;
+        $name =~ s/\n/ /g;
         $name =~ s/,.*//;
     }
     $user ||= $pwnam->name;
@@ -227,6 +232,23 @@ sub set_package_name {
     }
     else {
         $pkgname = Debian::Control::FromCPAN->module_name_to_pkg_name( $self->perlname );
+    }
+
+    if (   $self->perlname =~ /^App-/
+        && !defined $self->cfg->packagename
+        && !$self->isa("DhMakePerl::Command::refresh") )
+    {
+        ( my $suggestion = $pkgname ) =~ s/^libapp-(.+)-perl$/$1/;
+        print "******\n";
+        print "NOTICE\n";
+        print "******\n";
+        print "You are packaging '"
+            . $self->perlname
+            . "', and by default dh-make-perl will use \n"
+            . "'$pkgname' as the name for the package.\n"
+            . "Maybe '$suggestion' might be a better name.\n"
+            . "In that case please pass '--packagename $suggestion' to dh-make-perl.\n";
+        print "******\n";
     }
 
     $self->control->source->Source($pkgname)
@@ -372,7 +394,7 @@ sub extract_name_ver {
         #Version specified on command line trumps other versions
         $ver = $self->cfg->version
     } elsif ( $self->mod_cpan_version ) {
-        if ($self->mod_cpan_version != $ver) {
+        if (version->parse($self->mod_cpan_version) != version->parse($ver)) {
             die "Version ambiguity, cpan has ".$self->mod_cpan_version.", module has ".$ver.". Please specify version with --version.\n";
         }
     }
@@ -1377,19 +1399,10 @@ sub discover_dependencies {
         # control->discover_dependencies needs configured CPAN
         $self->configure_cpan;
 
-        # Attempt to get an instance of DPKG::Parse::Available. If this
-        # isn't available, warn the user, as versions of packages cannot
-        # be checked.
         # Don't cache this in case we've built and installed a
         # module in this instance.
-        my $dpkg_available;
-        if ( eval { require DPKG::Parse::Available } && DPKG::Parse->VERSION >= 0.02 ) {
-            $dpkg_available = DPKG::Parse::Available->new;
-            $dpkg_available->parse;
-        } else {
-            warn "DPKG::Parse v0.02 or higher not found.";
-            warn "Versions of required packages will not be checked.";
-        }
+        my $dpkg_available = Dpkg::Index->new(type => CTRL_INFO_PKG);
+        $dpkg_available->load("$Dpkg::ADMINDIR/available");
 
         return $self->control->discover_dependencies(
             {   dir                => $self->main_dir,
@@ -1401,6 +1414,7 @@ sub discover_dependencies {
                 install_build_deps => $self->cfg->install_build_deps,
                 wnpp_query         => $wnpp_query,
                 intrusive          => $self->cfg->intrusive,
+                guess_nocheck      => $self->cfg->guess_nocheck,
             }
         );
     }
@@ -1601,7 +1615,8 @@ sub unquote {
 
 =item create_upstream_metadata
 
-Populates F<debian/upstream/metadata> with information from F<META>.
+Populates F<debian/upstream/metadata> with information from F<META>,
+using L<Debian::Upstream::Metadata::Perl>.
 
 =cut
 
@@ -1611,95 +1626,13 @@ sub create_upstream_metadata {
 
     return unless %$meta;
 
-    require YAML::XS;
-
-    my %upstream;
-
-    $upstream{"Archive"}           = 'CPAN';
-    # $upstream{"Name"}            = $meta->{name};
-    # $upstream{"Contact"}         = join( ', ', @{ $meta->{author} } );
-    # $upstream{"Homepage"}        = $meta->{resources}->{homepage};
-    $upstream{"Bug-Database"}      = $meta->{resources}->{bugtracker}->{web};
-    $upstream{"Bug-Submit"}        = $meta->{resources}->{bugtracker}->{mailto};
-    $upstream{"Repository"}        = $meta->{resources}->{repository}->{url};
-    $upstream{"Repository-Browse"} = $meta->{resources}->{repository}->{web};
-
-    # we don't care to write debian/upstream/metadata
-    # if we don't have a Repository
-    return unless defined $upstream{"Repository"};
-
-    my $fix_browse = ! defined $upstream{"Repository-Browse"};
-
-    my $url_parser = qr|(?:([^:/?\#]+):)? # protocol
-                        (?://([^/?\#]*))? # domain name
-                        ([^?\#]*)         # path
-                        (?:\?([^\#]*))?   # query
-                        (?:\#(.*))?       # fragment
-                       |x;
-
-    my ($protocol, $domain, $path, $query, $fragment)
-        = $upstream{"Repository"} =~ $url_parser;
-
-    # fixups:
-    # strip user@, e.g. 'ssh://git@github.com/user/project.git'
-    $domain =~ s|^[^@]+@||;
-    # handle : after host, e.g.'git://git@github.com:user/project.git'
-    if ( $domain =~ m/:/ ) {
-        my ( $domainpart, $userpart ) = split /:/, $domain;
-        $domain = $domainpart;
-        $path   = '/' . $userpart . $path;
-    }
-
-    my $host = {
-        'github.com'    => 'github',
-        'gitlab.com'    => 'gitlab',
-        'bitbucket.org' => 'bitbucket',
-    }->{$domain};
-
-    if (defined $host) {
-        if ($protocol ne "https") {
-            $upstream{"Repository"} = "https://$domain$path";
-        }
-        if ($fix_browse) {
-            $path =~ s/\.git$//;
-            $upstream{"Repository-Browse"} = "https://$domain$path";
-        }
-        # fix remaining non-HTTPS URLs
-        foreach ( qw(
-            Bug-Database
-            Bug-Submit
-            Repository
-            Repository-Browse
-        )) {
-            $upstream{$_} =~ s|^http://|https://| if $upstream{$_};
-        }
-    }
-
-    # GitHub fixups
-    # TODO: this is copied from dpt-debian-upstream
-    if (   defined $upstream{"Bug-Database"}
-        && $upstream{"Bug-Database"} =~ /github\.com.+issues\/?$/
-        && !$upstream{"Bug-Submit"} )
-    {
-        $upstream{"Bug-Database"} =~ s/\/$//;
-        $upstream{"Bug-Submit"} = $upstream{"Bug-Database"} . '/new';
-    }
-    if (   defined $upstream{"Repository"}
-        && $upstream{"Repository"} =~ /github\.com/
-        && $upstream{"Repository"} !~ /\.git$/ )
-    {
-        $upstream{"Repository"} =~ s/\/$//;
-        $upstream{"Repository"} .= '.git';
-    }
-
-    foreach ( keys %upstream ) {
-        delete $upstream{$_} unless defined $upstream{$_};
-    }
-
-    my $dir = File::Spec->catdir( $self->main_dir, 'debian', 'upstream' );
-
-    mkdir($dir);
-    YAML::XS::DumpFile( File::Spec->catfile( $dir, 'metadata' ), \%upstream );
+    require Debian::Upstream::Metadata::Perl;
+    Debian::Upstream::Metadata::Perl->convert(
+        $self->meta,
+        File::Spec->catfile(
+            $self->main_dir, 'debian', 'upstream', 'metadata'
+        )
+    );
 }
 
 =item cme_fix_dpkg_control
@@ -1772,7 +1705,7 @@ sub _file_w {
 
 =item Copyright (C) 2006 Frank Lichtenheld <djpig@debian.org>
 
-=item Copyright (C) 2007-2021, gregor herrmann <gregoa@debian.org>
+=item Copyright (C) 2007-2025, gregor herrmann <gregoa@debian.org>
 
 =item Copyright (C) 2007-2013 Damyan Ivanov <dmn@debian.org>
 

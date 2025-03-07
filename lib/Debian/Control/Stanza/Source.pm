@@ -89,7 +89,7 @@ package Debian::Control::Stanza::Source;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 use base qw(Debian::Control::Stanza);
 

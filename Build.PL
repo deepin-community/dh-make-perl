@@ -7,7 +7,6 @@ my $builder = My::Builder->new(
     module_name         => 'DhMakePerl',
     license             => 'gpl',
     recommends          => {
-        'DPKG::Parse' => 0.02,
         'Git'         => 0,
         'IO::Dir'     => 0,
     },
@@ -24,6 +23,8 @@ my $builder = My::Builder->new(
         'CPAN::Meta'                => 0,
         'Cwd'                       => 0,
         'Dpkg'                      => 0,
+        'Dpkg::Index'               => 0,
+        'Dpkg::Control::Types'      => 0,
         'Dpkg::Source::Package'     => '1.01',
         'Email::Address::XS'        => '1.01',
         'Email::Date::Format'       => 0,

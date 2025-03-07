@@ -4,6 +4,7 @@ usr/share/man/man3/Debian::Dependencies.3pm
 usr/share/man/man3/Debian::Dependency.3pm
 usr/share/man/man3/Debian::DpkgLists.3pm
 usr/share/man/man3/Debian::Rules.3pm
+usr/share/man/man3/Debian::Upstream::Metadata::Perl.3pm
 usr/share/man/man3/Debian::WNPP::*
 usr/share/perl5/Debian/Control.pm
 usr/share/perl5/Debian/Control/Stanza*
@@ -11,4 +12,5 @@ usr/share/perl5/Debian/Dependencies.pm
 usr/share/perl5/Debian/Dependency.pm
 usr/share/perl5/Debian/DpkgLists.pm
 usr/share/perl5/Debian/Rules.pm
+usr/share/perl5/Debian/Upstream/Metadata/Perl.pm
 usr/share/perl5/Debian/WNPP/*

@@ -3,7 +3,7 @@ package Debian::AptContents;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 =head1 NAME
 
