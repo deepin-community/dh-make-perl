@@ -2,7 +2,7 @@ package DhMakePerl::Command::make;
 
 use warnings;
 use strict;
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 use 5.010;    # we use smart matching
 
 use base 'DhMakePerl::Command::Packaging';
@@ -40,7 +40,7 @@ TO BE FILLED
 =cut
 
 use CPAN ();
-use Cwd qw( realpath );
+use Cwd qw( realpath cwd );
 use Debian::Dependencies      ();
 use Debian::Dependency        ();
 use Debian::WNPP::Query;
@@ -84,16 +84,11 @@ sub execute {
 
     $tarball //= $self->guess_debian_tarball if $self->cfg->{vcs} eq 'git';
 
-    if ( defined $self->cfg->version ) {
-        $self->pkgversion( $self->cfg->version );
+    if ( defined $self->cfg->revision ) {
+        $self->pkgversion( $self->version . '-' . $self->cfg->revision );
     }
     else {
-        if ( defined $self->cfg->revision ) {
-            $self->pkgversion( $self->version . '-' . $self->cfg->revision );
-        }
-        else {
-            $self->pkgversion( $self->version . '-1' );
-        }
+        $self->pkgversion( $self->version . '-1' );
     }
 
     $self->fill_maintainer;
@@ -141,6 +136,9 @@ sub execute {
 
     $bin->Depends->add( $self->cfg->depends )
         if $self->cfg->depends;
+
+    $bin->Depends( Debian::Dependencies->new( $self->cfg->force_depends ) )
+        if $self->cfg->force_depends;
 
     $src->Build_Depends->add( $self->cfg->bdepends )
         if $self->cfg->bdepends;
@@ -208,6 +206,8 @@ sub execute {
     $self->update_file_list( docs => $self->docs, examples => $self->examples );
 
     $self->create_upstream_metadata;
+
+    $self->create_gbp_conf;
 
     if ( $self->cfg->recursive ) {
         $already_done //= {};
@@ -297,7 +297,7 @@ sub setup_dir {
         $orig_pwd = $ENV{'PWD'};
 
         # Is the module a core module?
-       if ( is_core_module( $self->cfg->cpan ) ) {
+        if ( is_core_module( $self->cfg->cpan ) ) {
             die $self->cfg->cpan
             . " is a standard module. Will not build without --core-ok.\n"
                 unless $self->cfg->core_ok;
@@ -328,7 +328,17 @@ sub setup_dir {
         }
 
         $dist->get;     # <- here $ENV{'PWD'} gets set to $HOME/.cpan/build
-        chdir $orig_pwd;   # so set it back
+
+        # only in case $orig_pwd was not previously set, fall back to the first existing working path
+        # cf. MR!3 and #815390
+        if ( ! defined ($orig_pwd) ) {
+            $orig_pwd = $ENV{'PWD'};
+        }
+
+        $ENV{'PWD'} = $orig_pwd;  # so set it back
+                                  # otherwise --recursive ends up in $HOME/.cpan/build
+        chdir $orig_pwd;          # and change back to it
+
         $dist->pretty_id =~ /^(.)(.)/;
         $tarball = $CPAN::Config->{'keep_source_where'} . "/authors/id/$1/$1$2/";
         # the file is under authors/id/A/AU/AUTHOR directory
@@ -396,6 +406,25 @@ sub build_package {
     my ( $self ) = @_;
 
     my $main_dir = $self->main_dir;
+
+    if ( my $build_script = $self->cfg->build_script ) {
+        my $save_cwd = cwd;
+        my $ok = eval {
+            chdir $self->main_dir
+                or die sprintf("chdir(%s): %s", $self->main_dir, "$!");
+
+            (system {$build_script} $build_script) == 0
+                or die "E: Build script failed\n";
+
+            1;
+        };
+        my $err = $@;
+        chdir $save_cwd or die sprintf("chdir(%s): %s", $save_cwd, "$!");
+
+        die $err unless $ok;
+        return;
+    }
+
     # warn if local::lib usage is detected. cf. #820395
     if ( $ENV{PERL_LOCAL_LIB_ROOT} ) {
         $self->warning('It seems that you are running in an active local::lib environment.');
@@ -407,10 +436,10 @@ sub build_package {
     }
     # uhmf! dpkg-genchanges doesn't cope with the deb being in another dir..
     #system("dpkg-buildpackage -b -us -uc " . $self->cfg->dbflags) == 0
-    system("fakeroot make -C $main_dir -f debian/rules clean");
-    system("make -C $main_dir -f debian/rules build") == 0
+    system(qw(fakeroot make -C), $main_dir, qw(-f debian/rules clean));
+    system(qw(make -C), $main_dir, qw(-f debian/rules build)) == 0
         || die "Cannot create deb package: 'debian/rules build' failed.\n";
-    system("fakeroot make -C $main_dir -f debian/rules binary") == 0
+    system(qw(fakeroot make -C), $main_dir, qw(-f debian/rules binary)) == 0
         || die "Cannot create deb package: 'fakeroot debian/rules binary' failed.\n";
 }
 
@@ -420,8 +449,8 @@ sub build_source_package {
     my $main_dir = $self->main_dir;
     # uhmf! dpkg-genchanges doesn't cope with the deb being in another dir..
     #system("dpkg-buildpackage -S -us -uc " . $self->cfg->dbflags) == 0
-    system("fakeroot make -C $main_dir -f debian/rules clean");
-    system("dpkg-source -b $main_dir") == 0
+    system(qw(fakeroot make -C), $main_dir, qw(-f debian/rules clean));
+    system(qw(dpkg-source -b), $main_dir) == 0
         || die "Cannot create source package: 'dpkg-source -b' failed.\n";
 }
 
@@ -440,14 +469,25 @@ sub install_package {
         $archspec = $arch;
     }
 
-    $debname = sprintf( "%s_%s-1_%s.deb", $self->pkgname, $self->version,
+    $debname = sprintf( "%s_%s_%s.deb", $self->pkgname, $self->pkgversion,
         $archspec );
 
     my $deb = $self->main_dir . "/../$debname";
-    my $install_cmd = "apt-get install $deb";
-    $install_cmd = "sudo $install_cmd" if $>;
-    $self->info("Running '$install_cmd'...");
-    system($install_cmd) == 0
+    my @install_cmd;
+    if ($self->cfg->install_with =~ /^apt(-get|itude)?$/) {
+        @install_cmd = ($self->cfg->install_with, 'install');
+    }
+    else {
+        @install_cmd = ($self->cfg->install_with, '-i');
+    }
+    push @install_cmd, $deb;
+
+    unshift @install_cmd, 'sudo' if $>;
+    {
+        local $, = ' ';
+        $self->info("Running '@install_cmd'...");
+    }
+    system(@install_cmd) == 0
         || die "Cannot install package $deb\n";
 }
 
@@ -521,7 +561,7 @@ sub create_changelog {
     my $closes = $bug ? " (Closes: #$bug)" : '';
     my $changelog_dist = $self->cfg->pkg_perl ? "UNRELEASED" : "unstable";
 
-    $fh->printf( "%s (%s) %s; urgency=low\n",
+    $fh->printf( "%s (%s) %s; urgency=medium\n",
         $self->srcname, $self->pkgversion, $changelog_dist );
     $fh->print("\n  * Initial release.$closes\n\n");
     $fh->printf( " -- %s  %s\n", $self->get_developer,
@@ -553,6 +593,17 @@ sub create_watch {
     $fh->printf( "version=4\n%s   .*/%s-%s\$\n",
         $self->upsurl, $self->perlname, $version_re );
     $fh->close;
+}
+
+sub create_gbp_conf {
+    my ($self) = @_;
+
+    my $fh = $self->_file_w($self->debian_file('gbp.conf'));
+    $fh->print("[DEFAULT]\n");
+    $fh->print("debian-branch = debian/latest\n");
+    $fh->print("upstream-branch = upstream/latest\n");
+    $fh->close;
+
 }
 
 sub search_pkg_perl {
@@ -739,23 +790,24 @@ sub git_import_upstream__init_debian {
 
     $self->reset_git_environment();
 
-    Git::command( 'init', $self->main_dir );
+    Git::command( 'init', '--initial-branch', 'debian/latest',
+        $self->main_dir );
     my @git_config = ( '-c', 'user.name=' . $self->get_name,
                        '-c', 'user.email=' . $self->get_email);
 
     my $git = Git->repository( $self->main_dir );
-    $git->command( qw(symbolic-ref HEAD refs/heads/upstream) );
+    $git->command( qw(symbolic-ref HEAD refs/heads/upstream/latest) );
     $git->command( 'add', '.' );
     $git->command( @git_config, 'commit', '-m',
               "Import original source of "
             . $self->perlname . ' '
             . $self->version );
-    $git->command( 'tag', "upstream/".$self->version, 'upstream' );
+    $git->command( 'tag', "upstream/".$self->version, 'upstream/latest' );
 
-    $git->command( qw( checkout -b master upstream ) );
+    $git->command( qw( checkout -b debian/latest upstream/latest ) );
     if ( -d $self->debian_dir ) {
       # remove debian/ directory if the upstream ships it. This goes into the
-      # 'master' branch, so the 'upstream' branch contains the original debian/
+      # 'debian/latest' branch, so the 'upstream/latest' branch contains the original debian/
       # directory, and thus matches the pristine-tar. Here I also remove the
       # debian/ directory from the working tree; git has the history, so I don't
       # need the debian.bak
@@ -893,7 +945,7 @@ L<https://bugs.debian.org/dh-make-perl>
 
 =item Copyright (C) 2006 Frank Lichtenheld <djpig@debian.org>
 
-=item Copyright (C) 2007-2020 gregor herrmann <gregoa@debian.org>
+=item Copyright (C) 2007-2023 gregor herrmann <gregoa@debian.org>
 
 =item Copyright (C) 2007,2008,2009,2010,2011,2012,2015 Damyan Ivanov <dmn@debian.org>
 

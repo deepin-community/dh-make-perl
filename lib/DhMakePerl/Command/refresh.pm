@@ -12,7 +12,7 @@ This module implements the I<refresh> command of L<dh-make-perl(1)>.
 
 use strict; use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 use base 'DhMakePerl::Command::Packaging';
 use Debian::Control::FromCPAN;
@@ -94,6 +94,9 @@ sub execute {
 
         $self->write_source_format(
             catfile( $self->debian_dir, 'source', 'format' ) );
+
+        $control->source->Testsuite('autopkgtest-pkg-perl') if $self->cfg->{pkg_perl};
+        $control->source->Rules_Requires_Root('no');
 
         $self->discover_dependencies;
         $self->discover_utility_deps($control);

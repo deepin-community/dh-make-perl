@@ -7,7 +7,7 @@ Build-Depends: debhelper-compat (= 13),
  libtest-deep-perl <!nocheck>,
  perl-xs-dev,
  perl:native
-Standards-Version: 4.5.1
+Standards-Version: 4.7.2
 Homepage: https://metacpan.org/release/Strange
 Rules-Requires-Root: no
 

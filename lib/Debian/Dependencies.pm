@@ -3,7 +3,7 @@ package Debian::Dependencies;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 use AptPkg::Config;
 use Debian::Dependency;

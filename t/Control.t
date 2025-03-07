@@ -26,6 +26,10 @@ lives_ok { $b = Debian::Control::Stanza::Source->new( {
             'Build-Depends' => 'perl',
         } ) } 'Build-Depens is supported as a field in new()';
 ok( $b->Build_Depends eq 'perl', 'and the value is in Build_Depends' );
+lives_ok { $b = Debian::Control::Stanza::Source->new( {
+            'build-depends' => 'perl8',
+        } ) } 'bUiLd-DePeNdS is supported as a field in new()';
+ok( $b->Build_Depends eq 'perl8', 'and the value is in Build_Depends' );
 
 my $control = <<'EOF';
 Source: libtest-compile-perl

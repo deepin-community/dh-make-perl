@@ -9,7 +9,7 @@ Debian::Control::Stanza::CommaSeparated - comma separated debian/control field a
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 use Array::Unique;
 use Text::ParseWords qw(quotewords);

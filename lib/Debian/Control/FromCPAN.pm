@@ -16,7 +16,7 @@ package Debian::Control::FromCPAN;
 use strict;
 use warnings;
 
-our $VERSION = '0.116';
+our $VERSION = '0.128';
 
 use Carp qw(croak);
 
@@ -25,7 +25,6 @@ use base 'Debian::Control';
 use CPAN ();
 use DhMakePerl::Utils qw( is_core_module find_cpan_module nice_perl_ver
   split_version_relation apt_cache is_core_perl_package );
-use File::Spec qw( catfile );
 use Module::Depends ();
 
 use constant oldstable_perl_version => '5.14.2';
@@ -54,11 +53,11 @@ a required module belongs.
 
 =item dpkg_available
 
-An instance of L<DPKG::Parse::Available> to be used when checking whether
+An instance of L<Dpkg::Index> to be used when checking whether
 the locally available package is the required version. For example:
 
-    my $available = DPKG::Parse::Available->new;
-    $available->parse;
+    my $available = Dpkg::Index->new(type => CTRL_INFO_PKG);
+    $available->load("$Dpkg::ADMINDIR/available");
 
 =item dir
 
@@ -116,6 +115,7 @@ sub discover_dependencies {
     my $install_deps = delete $opts->{install_deps};
     my $install_build_deps = delete $opts->{install_build_deps};
     my $wnpp_query = delete $opts->{wnpp_query};
+    my $guess_nocheck = delete $opts->{guess_nocheck};
 
     die "Unsupported option(s) given: " . join( ', ', sort( keys(%$opts) ) )
         if %$opts;
@@ -248,11 +248,34 @@ sub discover_dependencies {
         $_->{profile} = '!nocheck' unless is_core_perl_package($_->{pkg});
     }
 
-    # HACK
-    # and to new as well as existing (on refresh)
-    # build dependencies called libtest-*
-    foreach ( @$b_debs, @{$src->Build_Depends}, @{$src->Build_Depends_Indep} ) {
-        $_->{profile} = '!nocheck' if $_->{pkg} =~ /^libtest-/;
+    # add <!nocheck> when there are no declared test dependencies
+    # to new as well as existing (on refresh)
+    # build dependencies that are likely to be used only for testing
+    # if Debian::PkgPerl::Util is not available, or the --guess-nocheck option
+    # is not specified, limit only to libtest-*
+    unless (@$t_debs) {
+        if ($guess_nocheck and eval { require Debian::PkgPerl::Util }) {
+            foreach (
+                @$b_debs,
+                @{$src->Build_Depends},
+                @{$src->Build_Depends_Indep}
+                )
+            {
+                $_->{profile} = '!nocheck'
+                    unless Debian::PkgPerl::Util->probable_build_dependency(
+                        $_->{pkg});
+            }
+        }
+        else {
+            foreach (
+                @$b_debs,
+                @{$src->Build_Depends},
+                @{$src->Build_Depends_Indep}
+                )
+            {
+                $_->{profile} = '!nocheck' if $_->{pkg} =~ /^libtest-/;
+            }
+        }
     }
 
     if (@$b_debs || @$t_debs) {
@@ -339,7 +362,7 @@ L<Debian::Dependencies> class) and a list of missing modules.
 
 Installed packages and perl core are searched first, then the APT contents.
 
-If a DPKG::Parse::Available object is passed, also check the available package version
+If a Dpkg::Index object is passed, also check the available package version.
 
 =cut
 
@@ -362,50 +385,9 @@ sub find_debs_for_modules {
 
         my ( $dep, $core_dep, $direct_dep );
 
-        require Debian::DpkgLists;
         if ( my $ver = is_core_module( $module, $version ) ) {
             $core_dep = Debian::Dependency->new( 'perl', $ver );
         }
-        if ( my @pkgs = Debian::DpkgLists->scan_perl_mod($module) ) {
-            # core packages should be included above
-            # it is normal to have them here, in case the version
-            # requirement can't be satisfied by the current perl
-            @pkgs = grep { !is_core_perl_package($_) } @pkgs;
-
-            if (@pkgs) {
-                $direct_dep = Debian::Dependency->new(
-                      ( @pkgs > 1 )
-                    ? [ map { { pkg => $_, ver => $version } } @pkgs ]
-                    : ( $pkgs[0], $version )
-                );
-
-                # Check the actual version available, if we've been passed
-                # a DPKG::Parse::Available object
-                if ( $dpkg_available ) {
-                    my @available;
-                    my @satisfied = grep {
-                        if ( my $pkg = $dpkg_available->get_package('name' => $_) ) {
-                            my $have_pkg = Debian::Dependency->new( $_, '=', $pkg->version );
-                            push @available, $have_pkg;
-                            $have_pkg->satisfies($direct_dep);
-                        }
-                        else {
-                            warn qq(Unable to obtain version information for "$module" with DPKG::Parse::Available. )
-                                .qq(You may need to run "apt-cache dumpavail | dpkg --merge-avail");
-                        }
-                    } @pkgs;
-                    unless ( @satisfied ) {
-                        print "$module is available locally as @available, but does not satisfy $version\n"
-                            if $verbose;
-                        push @missing, $module;
-                    }
-                }
-                else {
-                    warn "DPKG::Parse not available. Not checking version of $module.";
-                }
-            }
-        }
-
         if (!$direct_dep && $apt_contents) {
             $direct_dep = $apt_contents->find_perl_module_package( $module, $version );
 
@@ -414,17 +396,66 @@ sub find_debs_for_modules {
             if ( $direct_dep && $aptpkg_cache ) {
                 my $pkg = $aptpkg_cache->{$direct_dep->pkg};
                 if ( my $available = $pkg->{VersionList} ) {
+                    my $found = 0;
                     for my $v ( @$available ) {
                         my $d = Debian::Dependency->new( $direct_dep->pkg, '=', $v->{VerStr} );
-                        last if $d->satisfies($direct_dep); # exit loop if we have a good version; otherwise:
+
+                        next unless $d->satisfies($direct_dep);
+
+                        $found = 1;
+                        last;
+                    }
+
+                    unless ($found) {
                         push @missing, $module;
-                        print "$module package in APT ($d) does not satisfy $direct_dep"
+                        print "$module packages in APT do not satisfy $direct_dep"
                             if $verbose;
                     }
                 }
             }
         }
 
+        if (!$direct_dep) {
+            require Debian::DpkgLists;
+            if ( my @pkgs = Debian::DpkgLists->scan_perl_mod($module) ) {
+                # core packages should be included above
+                # it is normal to have them here, in case the version
+                # requirement can't be satisfied by the current perl
+                @pkgs = grep { !is_core_perl_package($_) } @pkgs;
+
+                if (@pkgs) {
+                    $direct_dep = Debian::Dependency->new(
+                          ( @pkgs > 1 )
+                        ? [ map { { pkg => $_, ver => $version } } @pkgs ]
+                        : ( $pkgs[0], $version )
+                    );
+
+                    # Check the actual version available, if we've been passed
+                    # a Dpkg::Index object
+                    # (evaluates as "$thing" in boolean context;
+                    # takes 6.5 seconds)
+                    if ( defined $dpkg_available ) {
+                        my @available;
+                        my @satisfied = grep {
+                            if ( my $pkg = $dpkg_available->get_by_key($_) ) {
+                                my $have_pkg = Debian::Dependency->new( $_, '=', $pkg->{Version} );
+                                push @available, $have_pkg;
+                                $have_pkg->satisfies($direct_dep);
+                            }
+                            else {
+                                warn qq(Unable to obtain version information for "$module" with Dpkg::Index. )
+                                    .qq(You may need to run "apt-cache dumpavail | dpkg --merge-avail");
+                            }
+                        } @pkgs;
+                        unless ( @satisfied ) {
+                            print "$module is available locally as @available, but does not satisfy $version\n"
+                                if $verbose;
+                            push @missing, $module;
+                        }
+                    }
+                }
+            }
+        }
 
         $dep = $direct_dep || $core_dep;
         $dep->rel($ver_rel) if $dep and $ver_rel and $dep->ver;
@@ -648,7 +679,7 @@ sub module_name_to_pkg_name {
 
 Copyright (C) 2009, 2010, 2012 Damyan Ivanov L<dmn@debian.org>
 
-Copyright (C) 2019, 2020 gregor herrmann L<gregoa@debian.org>
+Copyright (C) 2019, 2020, 2024 gregor herrmann L<gregoa@debian.org>
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License version 2 as published by the Free

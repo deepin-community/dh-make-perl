@@ -114,6 +114,6 @@ is( ( $ctl->find_debs_for_modules( { 'Test::More' => '0' }, $apt_contents ) )[0]
     'Test::More is in libtest-simple-perl'
 );
 
-ok( unlink "$Bin/Contents.cache", 'Contents.cache unlnked' );
+ok( unlink "$Bin/Contents.cache", 'Contents.cache unlinked' );
 
 done_testing;
