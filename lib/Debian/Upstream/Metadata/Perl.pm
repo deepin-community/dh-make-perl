@@ -3,7 +3,7 @@ use warnings;
 
 package Debian::Upstream::Metadata::Perl;
 
-our $VERSION = '0.127';
+our $VERSION = '0.129';
 
 sub convert {
     my ($class, $meta, $filename) = @_;

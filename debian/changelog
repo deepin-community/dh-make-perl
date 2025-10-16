@@ -1,3 +1,24 @@
+dh-make-perl (0.129) unstable; urgency=medium
+
+  * dh-make-perl(1): update documentation.
+    DPKG::Parse::Available has been replaced with Dpkg::Index in 0.120.
+    Cf. #1107771
+  * Add test and runtime dependency on apt. Cf. #1107771
+    Thanks to Jochen Sprickerhof for the bug report.
+  * DhMakePerl::Command::Packaging:
+    Only load dpkg/available when it exists.
+    Thanks to Jochen Sprickerhof for the patch.
+    (Closes: #1107771)
+
+ -- gregor herrmann <gregoa@debian.org>  Mon, 11 Aug 2025 01:11:20 +0200
+
+dh-make-perl (0.128) unstable; urgency=medium
+
+  * Update Standards-Version to 4.7.2 for dh-make-perl itself, for created
+    packages, and in the test suite.
+
+ -- gregor herrmann <gregoa@debian.org>  Fri, 28 Feb 2025 17:46:09 +0100
+
 dh-make-perl (0.127) unstable; urgency=medium
 
   * Update Standards-Version to 4.7.1 for dh-make-perl itself, for created
