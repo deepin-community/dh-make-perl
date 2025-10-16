@@ -3,7 +3,7 @@ package DhMakePerl::Command::Packaging;
 use strict;
 use warnings;
 
-our $VERSION = '0.127';
+our $VERSION = '0.129';
 
 use feature 'switch';
 
@@ -50,7 +50,7 @@ use Text::Wrap qw(fill);
 use User::pwent;
 use version;
 
-use constant debstdversion => '4.7.1';
+use constant debstdversion => '4.7.2';
 
 our %DEFAULTS = (
 );
@@ -1402,7 +1402,7 @@ sub discover_dependencies {
         # Don't cache this in case we've built and installed a
         # module in this instance.
         my $dpkg_available = Dpkg::Index->new(type => CTRL_INFO_PKG);
-        $dpkg_available->load("$Dpkg::ADMINDIR/available");
+        $dpkg_available->load("$Dpkg::ADMINDIR/available") if -r "$Dpkg::ADMINDIR/available";
 
         return $self->control->discover_dependencies(
             {   dir                => $self->main_dir,

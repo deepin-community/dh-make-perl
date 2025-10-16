@@ -468,7 +468,7 @@ B<--revision>.
 For mapping upstream build, test, and runtime requirements to build and
 runtime dependencies on Debian packages, B<dh-make-perl> can use APT's
 F<Contents> files, if L<apt-file(1)> is installed, and additionally
-F</var/lib/dpkg/available>, if C<libdpkg-parse-perl> is installed.
+F</var/lib/dpkg/available>, using C<libdpkg-perl>.
 
 =head1 FILES
 

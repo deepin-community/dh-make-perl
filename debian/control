@@ -11,7 +11,8 @@ Priority: optional
 Build-Depends: debhelper-compat (= 13),
                libmodule-build-perl,
                perl
-Build-Depends-Indep: libapt-pkg-perl <!nocheck>,
+Build-Depends-Indep: apt <!nocheck>,
+                     libapt-pkg-perl <!nocheck>,
                      libarray-unique-perl <!nocheck>,
                      libclass-accessor-perl <!nocheck>,
                      libconfig-ini-perl <!nocheck>,
@@ -47,7 +48,7 @@ Build-Depends-Indep: libapt-pkg-perl <!nocheck>,
 #                     , libtest-spelling-perl <!nocheck>
 #                     , libtest-version-perl <!nocheck>
 #                     , spell <!nocheck> | aspell <!nocheck> | ispell <!nocheck> | hunspell <!nocheck>
-Standards-Version: 4.7.1
+Standards-Version: 4.7.2
 Vcs-Browser: https://salsa.debian.org/perl-team/modules/packages/dh-make-perl
 Vcs-Git: https://salsa.debian.org/perl-team/modules/packages/dh-make-perl.git
 Rules-Requires-Root: no
@@ -56,6 +57,7 @@ Package: dh-make-perl
 Architecture: all
 Depends: ${misc:Depends},
          ${perl:Depends},
+         apt,
          debhelper (>= 13),
          dpkg-dev,
          fakeroot,

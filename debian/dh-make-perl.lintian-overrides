@@ -1,2 +1,4 @@
-# false positive, dpkg's path is only mentioned in the POD
+# lintian is right that we are accessing /var/lib/dpkg/available,
+# but we're only reading, which doesn't seem to match the spirit
+# of this lintian tag.
 dh-make-perl: uses-dpkg-database-directly [usr/bin/dh-make-perl]
